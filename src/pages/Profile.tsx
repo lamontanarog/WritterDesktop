@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import type { RootState } from "../store"
-import { deleteText } from "../features/ideas/ideasSlice"
+import { deleteText, editText } from "../features/ideas/ideasSlice"
 import { useNavigate } from "react-router-dom"
 import {
   Box,
@@ -30,6 +30,8 @@ import {
   Tooltip,
   Alert,
   AlertTitle,
+  TextField,
+  Snackbar,
 } from "@mui/material"
 import {
   ArrowBack as ArrowBackIcon,
@@ -37,7 +39,10 @@ import {
   Visibility as VisibilityIcon,
   AccessTime as AccessTimeIcon,
   TextFields as TextFieldsIcon,
+  Edit as EditIcon,
   Close as CloseIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
 } from "@mui/icons-material"
 
 // Define the SavedText interface
@@ -55,8 +60,16 @@ const Profile = () => {
   const dispatch = useDispatch()
   const savedTexts = useSelector((state: RootState) => state.ideas.savedTexts)
 
+  // State for editing
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editContent, setEditContent] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
+  const [snackbarMessage, setSnackbarMessage] = useState("")
+
   // State for modal
   const [selectedText, setSelectedText] = useState<SavedText | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [openModal, setOpenModal] = useState(false)
 
   // State for delete confirmation
@@ -70,13 +83,23 @@ const Profile = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  const handleOpenModal = (text: SavedText) => {
+  const handleOpenModal = (text: SavedText, index: number) => {
     setSelectedText(text)
+    setSelectedIndex(index)
+    setEditContent(text.content)
     setOpenModal(true)
   }
 
   const handleCloseModal = () => {
-    setOpenModal(false)
+    if (isEditing) {
+      // Show confirmation before closing if in edit mode
+      if (window.confirm("¿Estás seguro de que deseas salir sin guardar los cambios?")) {
+        setIsEditing(false)
+        setOpenModal(false)
+      }
+    } else {
+      setOpenModal(false)
+    }
   }
 
   const handleDeleteConfirm = (index: number) => {
@@ -89,7 +112,66 @@ const Profile = () => {
       dispatch(deleteText({ index: textToDelete }))
       setDeleteConfirmOpen(false)
       setTextToDelete(null)
+
+      // Show success message
+      setSnackbarMessage("Texto eliminado correctamente")
+      setSnackbarOpen(true)
+
+      // Close modal if the deleted text was being viewed
+      if (selectedIndex === textToDelete) {
+        setOpenModal(false)
+      }
     }
+  }
+
+  const handleEdit = () => {
+    if (selectedIndex !== null && selectedText) {
+      setIsEditing(true)
+      setEditingIndex(selectedIndex)
+      setEditContent(selectedText.content)
+    }
+  }
+
+  const cancelEdit = () => {
+    setIsEditing(false)
+    // Reset to original content
+    if (selectedText) {
+      setEditContent(selectedText.content)
+    }
+  }
+
+  const saveEdit = () => {
+    if (editingIndex !== null) {
+      // Calculate new word count
+      const wordCount = editContent.trim() ? editContent.trim().split(/\s+/).length : 0
+
+      dispatch(
+        editText({
+          index: editingIndex,
+          newText: editContent,
+          newWordCount: wordCount,
+        }),
+      )
+
+      // Update the selected text in the modal
+      if (selectedText) {
+        setSelectedText({
+          ...selectedText,
+          content: editContent,
+          counter: wordCount,
+        })
+      }
+
+      setIsEditing(false)
+
+      // Show success message
+      setSnackbarMessage("Texto actualizado correctamente")
+      setSnackbarOpen(true)
+    }
+  }
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false)
   }
 
   return (
@@ -201,7 +283,7 @@ const Profile = () => {
                         size="small"
                         color="primary"
                         startIcon={<VisibilityIcon />}
-                        onClick={() => handleOpenModal(text)}
+                        onClick={() => handleOpenModal(text, index)}
                       >
                         Ver
                       </Button>
@@ -214,7 +296,7 @@ const Profile = () => {
         </Grid>
       )}
 
-      {/* View Text Modal */}
+      {/* View/Edit Text Modal */}
       <Modal
         open={openModal}
         onClose={handleCloseModal}
@@ -280,10 +362,57 @@ const Profile = () => {
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >
-              <Typography variant="body1" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
-                {selectedText?.content}
-              </Typography>
+              {isEditing ? (
+                <TextField
+                  multiline
+                  fullWidth
+                  minRows={8}
+                  maxRows={20}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  variant="outlined"
+                  placeholder="Escribe tu texto aquí..."
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: theme.palette.background.paper,
+                    },
+                  }}
+                />
+              ) : (
+                <Typography
+                  variant="body1"
+                  sx={{
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {selectedText?.content}
+                </Typography>
+              )}
             </Paper>
+
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
+              {isEditing ? (
+                <>
+                  <Button variant="outlined" color="inherit" startIcon={<CancelIcon />} onClick={cancelEdit}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={saveEdit}
+                    disabled={!editContent.trim()}
+                  >
+                    Guardar cambios
+                  </Button>
+                </>
+              ) : (
+                <Button variant="contained" color="primary" startIcon={<EditIcon />} onClick={handleEdit}>
+                  Editar texto
+                </Button>
+              )}
+            </Box>
           </Box>
         </Fade>
       </Modal>
@@ -305,6 +434,15 @@ const Profile = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Container>
   )
 }

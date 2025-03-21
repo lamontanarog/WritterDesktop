@@ -46,9 +46,12 @@ const ideasSlice = createSlice({
         },
         deleteText: (state, action: PayloadAction<number>) => {
             state.savedTexts.splice(action.payload, 1);
+        },
+        editText: (state, action: PayloadAction<{ index: number, newText: string }>) => {
+            state.savedTexts[action.payload.index].content = action.payload.newText;
         }
     }
 })
 
-export const { setIdeas, addIdea, saveText, selectIdea, deleteText } = ideasSlice.actions;
+export const { setIdeas, addIdea, saveText, selectIdea, deleteText, editText } = ideasSlice.actions;
 export default ideasSlice.reducer;
