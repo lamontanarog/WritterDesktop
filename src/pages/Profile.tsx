@@ -1,15 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useSelector, useDispatch } from "react-redux"
-import type { RootState } from "../store"
-import { deleteText, editText } from "../features/ideas/ideasSlice"
 import { useNavigate } from "react-router-dom"
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   IconButton,
   Typography,
   Divider,
@@ -22,427 +17,640 @@ import {
   Chip,
   Paper,
   useTheme,
-  CardHeader,
   Avatar,
-  Modal,
-  Fade,
-  Backdrop,
-  Tooltip,
   Alert,
-  AlertTitle,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  CircularProgress,
   TextField,
-  Snackbar,
+  Tooltip,
 } from "@mui/material"
 import {
-  ArrowBack as ArrowBackIcon,
+  Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
   AccessTime as AccessTimeIcon,
   TextFields as TextFieldsIcon,
-  Edit as EditIcon,
-  Close as CloseIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
+  Visibility,
+  ArrowBack,
 } from "@mui/icons-material"
+import { toast } from 'sonner'
 
-// Define the SavedText interface
-interface SavedText {
-  ideaId: number
-  title?: string
-  content: string
-  time: number
-  counter: number
-}
+import { useGetCurrentUserQuery, useGetTextsQuery, useDeleteTextMutation, useGetIdeasQuery, useUpdateTextMutation } from '../features/api/apiSlice'
+import LogoutButton from '../components/LogoutButton'
+import { Text } from '../types/text'
+import { Idea } from '../types/idea'
+import { skipToken } from '@reduxjs/toolkit/query/react'
 
 const Profile = () => {
   const theme = useTheme()
   const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const savedTexts = useSelector((state: RootState) => state.ideas.savedTexts)
-
-  // State for editing
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [selectedText, setSelectedText] = useState<Text | null>(null)
+  const [openDialog, setOpenDialog] = useState(false)
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [openEditDialog, setOpenEditDialog] = useState(false)
   const [editContent, setEditContent] = useState("")
-  const [isEditing, setIsEditing] = useState(false)
-  const [snackbarOpen, setSnackbarOpen] = useState(false)
-  const [snackbarMessage, setSnackbarMessage] = useState("")
+  const [page, setPage] = useState(1);
+  const { data: user, isLoading: isLoadingUser, isError: isUserError } = useGetCurrentUserQuery(undefined, {
+    skip: !localStorage.getItem('token')
+  })
 
-  // State for modal
-  const [selectedText, setSelectedText] = useState<SavedText | null>(null)
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
-  const [openModal, setOpenModal] = useState(false)
+  const { data: textsResponse, isLoading: isLoadingTexts, isError: isTextsError, refetch } = useGetTextsQuery({
+    page,
+    limit: 10, // Mantener el límite por página
+  }, {
+    skip: !localStorage.getItem('token'),
+  });
 
-  // State for delete confirmation
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [textToDelete, setTextToDelete] = useState<number | null>(null)
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    refetch(); // Refrescar los datos
+  };
 
-  // Format time (assuming time is in seconds)
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-  }
+  const texts = textsResponse?.data || []
 
-  const handleOpenModal = (text: SavedText, index: number) => {
+  // Obtener todos los IDs de ideas únicos
+  const ideaIds = texts.map((text: Text) => text.ideaId).filter(Boolean) || []
+  
+  // Obtener todas las ideas
+  const { data: ideasResponse } = useGetIdeasQuery({
+    page: 1,
+    limit: 100 // Un límite alto para obtener todas las ideas necesarias
+  }, {
+    skip: ideaIds.length === 0
+  })
+
+  // Crear un mapa de ideas para acceso más fácil
+  const ideasMap = ideasResponse?.data.reduce((acc: Record<string, Idea>, idea: Idea) => {
+    acc[idea.id] = idea;
+    return acc;
+  }, {}) || {};
+
+  const [deleteText, { isLoading: isDeleting }] = useDeleteTextMutation()
+  const [updateText, { isLoading: isUpdating }] = useUpdateTextMutation()
+
+  const handleOpenDialog = (text: Text) => {
     setSelectedText(text)
-    setSelectedIndex(index)
+    setOpenDialog(true)
+  }
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false)
+    setSelectedText(null)
+  }
+
+  const handleOpenDeleteDialog = (text: Text) => {
+    setSelectedText(text)
+    setOpenDeleteDialog(true)
+  }
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false)
+    setSelectedText(null)
+  }
+
+  const handleDeleteText = async () => {
+    if (!selectedText) return
+
+    try {
+      console.log('Profile - Eliminando texto:', selectedText.id)
+      await deleteText(selectedText.id).unwrap()
+      console.log('Profile - Texto eliminado exitosamente')
+      toast.success('Texto eliminado exitosamente')
+      refetch()
+      handleCloseDeleteDialog()
+    } catch (error) {
+      console.error('Profile - Error al eliminar texto:', error)
+      toast.error('Error al eliminar texto')
+    }
+  }
+
+  const handleOpenEditDialog = (text: Text) => {
+    setSelectedText(text)
     setEditContent(text.content)
-    setOpenModal(true)
+    setOpenEditDialog(true)
   }
 
-  const handleCloseModal = () => {
-    if (isEditing) {
-      // Show confirmation before closing if in edit mode
-      if (window.confirm("¿Estás seguro de que deseas salir sin guardar los cambios?")) {
-        setIsEditing(false)
-        setOpenModal(false)
-      }
-    } else {
-      setOpenModal(false)
-    }
+  const handleCloseEditDialog = () => {
+    setOpenEditDialog(false)
+    setSelectedText(null)
+    setEditContent("")
   }
 
-  const handleDeleteConfirm = (index: number) => {
-    setTextToDelete(index)
-    setDeleteConfirmOpen(true)
-  }
+  const handleUpdateText = async () => {
+    if (!selectedText) return
 
-  const handleDelete = () => {
-    if (textToDelete !== null) {
-      dispatch(deleteText({ index: textToDelete }))
-      setDeleteConfirmOpen(false)
-      setTextToDelete(null)
-
-      // Show success message
-      setSnackbarMessage("Texto eliminado correctamente")
-      setSnackbarOpen(true)
-
-      // Close modal if the deleted text was being viewed
-      if (selectedIndex === textToDelete) {
-        setOpenModal(false)
-      }
-    }
-  }
-
-  const handleEdit = () => {
-    if (selectedIndex !== null && selectedText) {
-      setIsEditing(true)
-      setEditingIndex(selectedIndex)
-      setEditContent(selectedText.content)
-    }
-  }
-
-  const cancelEdit = () => {
-    setIsEditing(false)
-    // Reset to original content
-    if (selectedText) {
-      setEditContent(selectedText.content)
-    }
-  }
-
-  const saveEdit = () => {
-    if (editingIndex !== null) {
-      // Calculate new word count
-      const wordCount = editContent.trim() ? editContent.trim().split(/\s+/).length : 0
-
-      dispatch(
-        editText({
-          index: editingIndex,
-          newText: editContent,
-          newWordCount: wordCount,
-        }),
-      )
-
-      // Update the selected text in the modal
-      if (selectedText) {
-        setSelectedText({
-          ...selectedText,
+    try {
+      await updateText({
+        id: selectedText.id,
+        data: {
           content: editContent,
-          counter: wordCount,
-        })
-      }
-
-      setIsEditing(false)
-
-      // Show success message
-      setSnackbarMessage("Texto actualizado correctamente")
-      setSnackbarOpen(true)
+          time: selectedText.time,
+          ideaId: selectedText.ideaId
+        }
+      }).unwrap()
+      console.log('Profile - Texto actualizado exitosamente')
+      toast.success('Texto actualizado exitosamente')
+      refetch()
+      handleCloseEditDialog()
+    } catch (error) {
+      console.error('Profile - Error al actualizar texto:', error)
+      toast.error('Error al actualizar texto')
     }
   }
 
-  const handleCloseSnackbar = () => {
-    setSnackbarOpen(false)
+  if (isLoadingUser || isLoadingTexts) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (isUserError || !user) {
+    return (
+      <Box p={3}>
+        <Alert severity="error">Error al cargar el perfil</Alert>
+      </Box>
+    )
   }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 4 }}>
-        <IconButton onClick={() => navigate("/")} sx={{ mr: 2 }} aria-label="volver" color="primary">
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" component="h1" fontWeight="bold">
-          Mis Textos Guardados
-        </Typography>
-      </Box>
-
-      {savedTexts.length === 0 ? (
-        <Paper
-          elevation={2}
-          sx={{
-            p: 4,
-            textAlign: "center",
+      <Box sx={{ mb: 4 }}>
+        <Button 
+          onClick={() => navigate('/', { replace: true })} 
+          variant="contained"
+          startIcon={<ArrowBack />}
+          sx={{ 
+            mb: 4,
             borderRadius: 2,
-            bgcolor: `${theme.palette.info.light}10`,
+            textTransform: 'none',
+            boxShadow: theme.shadows[2],
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+            }
           }}
         >
-          <Alert severity="info" sx={{ justifyContent: "center" }}>
-            <AlertTitle>No hay textos guardados</AlertTitle>
-            Comienza a escribir para ver tus textos aquí
-          </Alert>
-          <Button variant="contained" color="primary" onClick={() => navigate("/")} sx={{ mt: 3 }}>
-            Comenzar a escribir
-          </Button>
-        </Paper>
-      ) : (
-        <Grid container spacing={3}>
-          {savedTexts.map((text, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  borderRadius: 2,
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: 4,
-                  },
-                }}
-              >
-                <CardHeader
-                  avatar={
-                    <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-                      {text.title ? text.title.charAt(0).toUpperCase() : "T"}
-                    </Avatar>
-                  }
-                  title={
-                    <Typography variant="subtitle1" fontWeight="bold" noWrap>
-                      {text.title || "Texto sin título"}
-                    </Typography>
-                  }
-                  subheader={
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mt: 0.5 }}>
-                      <Chip
-                        icon={<AccessTimeIcon fontSize="small" />}
-                        label={`${formatTime(text.time)}`}
-                        size="small"
-                        variant="outlined"
-                      />
-                      <Chip
-                        icon={<TextFieldsIcon fontSize="small" />}
-                        label={`${text.counter} palabras`}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Box>
-                  }
-                  sx={{ pb: 0 }}
-                />
-
-                <CardContent sx={{ flexGrow: 1, pt: 1 }}>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      display: "-webkit-box",
-                      overflow: "hidden",
-                      WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: 3,
-                      mb: 2,
-                      height: "4.5em",
-                    }}
-                  >
-                    {text.content}
-                  </Typography>
-
-                  <Box sx={{ display: "flex", justifyContent: "space-between", mt: "auto" }}>
-                    <Tooltip title="Eliminar texto">
-                      <Button
-                        size="small"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDeleteConfirm(index)}
-                      >
-                        Eliminar
-                      </Button>
-                    </Tooltip>
-
-                    <Tooltip title="Ver texto completo">
-                      <Button
-                        size="small"
-                        color="primary"
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleOpenModal(text, index)}
-                      >
-                        Ver
-                      </Button>
-                    </Tooltip>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* View/Edit Text Modal */}
-      <Modal
-        open={openModal}
-        onClose={handleCloseModal}
-        closeAfterTransition
-        slots={{
-          backdrop: Backdrop,
-        }}
-        slotProps={{
-          backdrop: {
-            timeout: 500,
-          },
-        }}
-      >
-        <Fade in={openModal}>
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: { xs: "90%", sm: "80%", md: "60%" },
-              maxWidth: 800,
-              maxHeight: "90vh",
-              bgcolor: "background.paper",
-              borderRadius: 2,
-              boxShadow: 24,
-              p: 4,
-              overflow: "auto",
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-              <Typography variant="h5" component="h2" fontWeight="bold">
-                {selectedText?.title || "Texto sin título"}
-              </Typography>
-              <IconButton onClick={handleCloseModal} size="small">
-                <CloseIcon />
-              </IconButton>
-            </Box>
-
-            <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-              <Chip
-                icon={<AccessTimeIcon />}
-                label={`Tiempo de escritura: ${selectedText ? formatTime(selectedText.time) : "0:00"}`}
-                color="primary"
-                variant="outlined"
-              />
-              <Chip
-                icon={<TextFieldsIcon />}
-                label={`${selectedText?.counter || 0} palabras`}
-                color="secondary"
-                variant="outlined"
-              />
-            </Box>
-
-            <Divider sx={{ mb: 3 }} />
-
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                bgcolor: `${theme.palette.background.default}`,
-                borderRadius: 2,
-                border: `1px solid ${theme.palette.divider}`,
+          Volver al inicio
+        </Button>
+        <Box 
+          display="flex" 
+          justifyContent="space-between" 
+          alignItems="center" 
+          mb={4}
+          sx={{
+            background: `linear-gradient(135deg, ${theme.palette.primary.light}15, ${theme.palette.secondary.light}15)`,
+            borderRadius: 3,
+            p: 3,
+            boxShadow: theme.shadows[1],
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={2}>
+            <Avatar 
+              sx={{ 
+                width: 80, 
+                height: 80, 
+                bgcolor: theme.palette.primary.main,
+                fontSize: '2rem',
+                boxShadow: theme.shadows[3],
               }}
             >
-              {isEditing ? (
-                <TextField
-                  multiline
-                  fullWidth
-                  minRows={8}
-                  maxRows={20}
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  variant="outlined"
-                  placeholder="Escribe tu texto aquí..."
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      backgroundColor: theme.palette.background.paper,
-                    },
-                  }}
-                />
-              ) : (
-                <Typography
-                  variant="body1"
-                  sx={{
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.8,
-                  }}
-                >
-                  {selectedText?.content}
-                </Typography>
-              )}
-            </Paper>
-
-            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
-              {isEditing ? (
-                <>
-                  <Button variant="outlined" color="inherit" startIcon={<CancelIcon />} onClick={cancelEdit}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<SaveIcon />}
-                    onClick={saveEdit}
-                    disabled={!editContent.trim()}
-                  >
-                    Guardar cambios
-                  </Button>
-                </>
-              ) : (
-                <Button variant="contained" color="primary" startIcon={<EditIcon />} onClick={handleEdit}>
-                  Editar texto
-                </Button>
-              )}
+              {user.name.charAt(0).toUpperCase()}
+            </Avatar>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                {user.name}
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 1 }}>
+                {user.email}
+              </Typography>
+              <Chip 
+                label={user.role} 
+                color="primary"
+                variant="outlined"
+                sx={{ 
+                  borderRadius: 1,
+                  textTransform: 'capitalize',
+                  fontWeight: 'medium'
+                }}
+              />
             </Box>
           </Box>
-        </Fade>
-      </Modal>
+          <LogoutButton />
+        </Box>
+      </Box>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-        <DialogTitle>Confirmar eliminación</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            ¿Estás seguro de que deseas eliminar este texto? Esta acción no se puede deshacer.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)} color="primary">
-            Cancelar
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: 3,
+          borderRadius: 3,
+          background: theme.palette.background.paper,
+          mb: 4
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          mb={3}
+          sx={{
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <TextFieldsIcon color="primary" />
+          Mis Textos
+        </Typography>
+
+        {isTextsError ? (
+          <Alert severity="error" sx={{ borderRadius: 2 }}>
+            Error al cargar los textos
+          </Alert>
+        ) : texts && texts.length > 0 ? (
+          <List sx={{ width: '100%' }}>
+            {texts.map((text: Text, index: number) => {
+              const idea = ideasMap[text.ideaId]
+              const ideaTitle = idea?.title || 'Sin título'
+              
+              return (
+                <Box key={text.id}>
+                  <ListItem 
+                    alignItems="flex-start"
+                    sx={{
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: `${theme.palette.primary.light}10`,
+                        transform: 'translateX(8px)',
+                      },
+                      borderRadius: 2,
+                      mb: 1
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar 
+                        sx={{ 
+                          bgcolor: theme.palette.secondary.main,
+                          boxShadow: theme.shadows[2]
+                        }}
+                      >
+                        {ideaTitle.charAt(0).toUpperCase()}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Box display="flex" alignItems="center" justifyContent="space-between">
+                          <Typography 
+                            variant="h6"
+                            sx={{ 
+                              fontWeight: 'medium',
+                              color: theme.palette.text.primary 
+                            }}
+                          >
+                            {ideaTitle}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="Ver texto completo">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleOpenDialog(text)}
+                                sx={{ 
+                                  bgcolor: `${theme.palette.info.main}15`,
+                                  '&:hover': {
+                                    bgcolor: `${theme.palette.info.main}25`,
+                                  }
+                                }}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Editar texto">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleOpenEditDialog(text)}
+                                sx={{ 
+                                  bgcolor: `${theme.palette.primary.main}15`,
+                                  '&:hover': {
+                                    bgcolor: `${theme.palette.primary.main}25`,
+                                  }
+                                }}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Eliminar texto">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleOpenDeleteDialog(text)}
+                                sx={{ 
+                                  bgcolor: `${theme.palette.error.main}15`,
+                                  '&:hover': {
+                                    bgcolor: `${theme.palette.error.main}25`,
+                                  }
+                                }}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </Box>
+                      }
+                      secondary={
+                        <Box sx={{ mt: 1 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.primary"
+                            sx={{ 
+                              mb: 2,
+                              lineHeight: 1.6,
+                              opacity: 0.9
+                            }}
+                          >
+                            {text.content.substring(0, 150)}...
+                          </Typography>
+                          <Box 
+                            display="flex" 
+                            gap={1} 
+                            alignItems="center"
+                            flexWrap="wrap"
+                          >
+                            <Chip
+                              icon={<AccessTimeIcon />}
+                              label={`${Math.floor(text.time / 60)}:${(text.time % 60).toString().padStart(2, '0')}`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ 
+                                borderRadius: 1,
+                                bgcolor: `${theme.palette.primary.main}10`
+                              }}
+                            />
+                            <Chip
+                              icon={<TextFieldsIcon />}
+                              label={`${text.wordCount} palabras`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ 
+                                borderRadius: 1,
+                                bgcolor: `${theme.palette.secondary.main}10`
+                              }}
+                            />
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                ml: 'auto',
+                                color: theme.palette.text.secondary,
+                                fontStyle: 'italic'
+                              }}
+                            >
+                              {new Date(text.createdAt).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                  {index < texts.length - 1 && (
+                    <Divider 
+                      variant="inset" 
+                      component="li" 
+                      sx={{ 
+                        my: 2,
+                        opacity: 0.5
+                      }}
+                    />
+                  )}
+                </Box>
+              )
+            })}
+          </List>
+        ) : (
+          <Alert 
+            severity="info" 
+            sx={{ 
+              borderRadius: 2,
+              bgcolor: `${theme.palette.info.main}15`
+            }}
+          >
+            No has escrito ningún texto aún
+          </Alert>
+        )}
+
+        <Box 
+          display="flex" 
+          justifyContent="center" 
+          alignItems="center"
+          gap={2}
+          mt={4}
+        >
+          <Button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+            variant="outlined"
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              minWidth: 100
+            }}
+          >
+            Anterior
           </Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
-            Eliminar
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              bgcolor: `${theme.palette.primary.main}15`,
+              fontWeight: 'medium'
+            }}
+          >
+            Página {page}
+          </Typography>
+          <Button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={!textsResponse}
+            variant="outlined"
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              minWidth: 100
+            }}
+          >
+            Siguiente
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* Diálogo para ver el texto completo */}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: theme.shadows[5]
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          pb: 2
+        }}>
+          {selectedText && ideasMap[selectedText.ideaId]?.title || 'Sin título'}
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
+            {selectedText?.content}
+          </Typography>
+          <Box display="flex" gap={1} mt={3}>
+            <Chip
+              icon={<AccessTimeIcon />}
+              label={`${Math.floor(selectedText?.time! / 60)}:${(selectedText?.time! % 60).toString().padStart(2, '0')}`}
+              size="small"
+              variant="outlined"
+              sx={{ borderRadius: 1 }}
+            />
+            <Chip
+              icon={<TextFieldsIcon />}
+              label={`${selectedText?.wordCount} palabras`}
+              size="small"
+              variant="outlined"
+              sx={{ borderRadius: 1 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button 
+            onClick={handleCloseDialog}
+            variant="outlined"
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none'
+            }}
+          >
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Success Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      />
+      {/* Diálogo de confirmación para eliminar */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: theme.shadows[5]
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: theme.palette.error.main }}>
+          ¿Eliminar texto?
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de que deseas eliminar este texto? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={handleCloseDeleteDialog}
+            variant="outlined"
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none'
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeleteText} 
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none'
+            }}
+          >
+            {isDeleting ? <CircularProgress size={24} /> : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de edición */}
+      <Dialog
+        open={openEditDialog}
+        onClose={handleCloseEditDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: theme.shadows[5]
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          pb: 2
+        }}>
+          Editar texto: {selectedText && ideasMap[selectedText.ideaId]?.title}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            multiline
+            rows={10}
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            sx={{ 
+              mt: 2,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                bgcolor: `${theme.palette.background.paper}`,
+                '& fieldset': {
+                  borderColor: theme.palette.divider,
+                },
+                '&:hover fieldset': {
+                  borderColor: theme.palette.primary.main,
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: theme.palette.primary.main,
+                },
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={handleCloseEditDialog}
+            variant="outlined"
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none'
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleUpdateText}
+            variant="contained"
+            color="primary"
+            disabled={isUpdating}
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none'
+            }}
+          >
+            {isUpdating ? <CircularProgress size={24} /> : 'Guardar cambios'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }

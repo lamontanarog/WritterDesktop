@@ -3,10 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import type { RootState } from "../store"
-import { saveText } from "../features/ideas/ideasSlice"
-import { useNavigate } from "react-router-dom"
+import { useDispatch } from "react-redux"
+import { useNavigate, useLocation } from "react-router-dom"
 import {
   Box,
   Button,
@@ -29,24 +27,34 @@ import {
   Save as SaveIcon,
   TextFields as TextFieldsIcon,
 } from "@mui/icons-material"
+import { useGetIdeaByIdQuery, useCreateTextMutation } from "../features/api/apiSlice"
+import { Idea } from "../types/idea"
+import { toast } from 'sonner'
 
 const Write = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const selectedIdea = useSelector((state: RootState) => state.ideas.selectedIdea)
+  const location = useLocation()
+  const ideaId = location.state?.ideaId
+
+
+  const { data: selectedIdea, isLoading, isError: isIdeaError } = useGetIdeaByIdQuery(ideaId, {
+    skip: !ideaId
+  })
+
+  const [createText, { isLoading: isSaving }] = useCreateTextMutation()
+
 
   const [text, setText] = useState("")
   const [readingTime, setReadingTime] = useState(0)
   const [wordCount, setWordCount] = useState(0)
   const [isWriting, setIsWriting] = useState(false)
   const [timer, setTimer] = useState(0)
-  const [isSaving, setIsSaving] = useState(false)
 
-  // Start timer when writing begins
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
+    let interval: ReturnType<typeof setInterval> | null = null
 
     if (isWriting) {
       interval = setInterval(() => {
@@ -59,7 +67,6 @@ const Write = () => {
     }
   }, [isWriting])
 
-  // Format timer to display as MM:SS
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
@@ -70,51 +77,46 @@ const Write = () => {
     const newText = e.target.value
     setText(newText)
 
-    // Calculate word count
     const words = newText.trim() ? newText.trim().split(/\s+/).length : 0
     setWordCount(words)
-
-    // Calculate reading time (average reading speed: 200 words per minute)
-    const readingTimeInMinutes = Math.max(1, Math.ceil(words / 200))
-    setReadingTime(readingTimeInMinutes)
+    setReadingTime(Math.max(1, Math.ceil(words / 200)))
 
     if (!isWriting) setIsWriting(true)
   }
 
   const handleSave = async () => {
-    if (text.trim() === "") return
-
-    setIsSaving(true)
+    if (!text.trim() || !selectedIdea) return
 
     try {
-      await dispatch(
-        saveText({
-          ideaId: selectedIdea!.id,
-          title: selectedIdea!.title,
-          content: text,
-          time: timer,
-          counter: wordCount,
-        }),
-      )
-      navigate("/")
+      
+      await createText({
+        ideaId: selectedIdea.id,
+        content: text,
+        time: timer,
+        wordCount
+      }).unwrap()
+
+      console.log('Write - Texto guardado exitosamente')
+      toast.success('Texto guardado exitosamente')
+      navigate("/", { replace: true })
     } catch (error) {
-      console.error("Failed to save:", error)
-      setIsSaving(false)
+      console.error('Write - Error al guardar el texto:', error)
+      toast.error('Error al guardar el texto')
     }
   }
 
-  if (!selectedIdea) {
+  if (!ideaId || isIdeaError) {
     return (
       <Container maxWidth="sm" sx={{ height: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Paper elevation={3} sx={{ p: 4, textAlign: "center", width: "100%" }}>
           <TextFieldsIcon sx={{ fontSize: 60, color: "text.secondary", mb: 2 }} />
           <Typography variant="h5" gutterBottom>
-            No hay idea seleccionada
+            {isIdeaError ? 'Error al cargar la idea' : 'No hay idea seleccionada'}
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
-            Selecciona una idea para comenzar a escribir
+            {isIdeaError ? 'Ocurrió un error al obtener la idea.' : 'Selecciona una idea para comenzar a escribir'}
           </Typography>
-          <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={() => navigate("/")} sx={{ mt: 2 }}>
+          <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={() => navigate("/", { replace: true })} sx={{ mt: 2 }}>
             Volver al inicio
           </Button>
         </Paper>
@@ -122,19 +124,31 @@ const Write = () => {
     )
   }
 
+  if (isLoading) {
+    return (
+      <Container maxWidth="sm" sx={{ height: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <CircularProgress />
+      </Container>
+    )
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
-        <IconButton onClick={() => navigate("/")} sx={{ mb: 2 }} aria-label="volver">
+        <IconButton 
+          onClick={() => navigate("/", { replace: true })} 
+          sx={{ mb: 2 }} 
+          aria-label="volver"
+        >
           <ArrowBackIcon />
         </IconButton>
 
         <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          {selectedIdea.title}
+          {selectedIdea?.title}
         </Typography>
 
         <Typography variant="body1" color="text.secondary" paragraph>
-          {selectedIdea.description}
+          {selectedIdea?.content}
         </Typography>
 
         <Box
@@ -211,7 +225,7 @@ const Write = () => {
           size="large"
           startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           onClick={handleSave}
-          disabled={text.trim() === "" || isSaving}
+          disabled={isSaving || !text.trim()}
           sx={{
             px: 3,
             py: 1.5,
@@ -222,7 +236,7 @@ const Write = () => {
             },
           }}
         >
-          {isSaving ? "Guardando..." : "Guardar y salir"}
+          {isSaving ? "Guardando..." : "Guardar"}
         </Button>
       </Box>
     </Container>

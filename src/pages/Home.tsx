@@ -1,232 +1,295 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { setIdeas, selectIdea } from "../features/ideas/ideasSlice"
-import type { RootState } from "../store"
-import Randomizer from "../components/Randomizer"
-import { useNavigate } from "react-router-dom"
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useGetIdeasQuery } from "../features/api/apiSlice";
 import {
-    Box,
-    Button,
-    Card,
-    CardContent,
-    CardHeader,
-    Container,
-    Typography,
-    Grid,
-    CardActions,
-    Divider,
-    useTheme,
-    Zoom,
-    IconButton,
-    Tooltip,
-    Paper,
-    Chip,
-} from "@mui/material"
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Container,
+  Typography,
+  Grid,
+  CardActions,
+  Divider,
+  useTheme,
+  Zoom,
+  IconButton,
+  Tooltip,
+  Paper,
+  Chip,
+  CircularProgress,
+} from "@mui/material";
 import {
-    Edit as EditIcon,
-    Bookmark as BookmarkIcon,
-    BookmarkBorder as BookmarkBorderIcon,
-    Create as CreateIcon,
-    FormatQuote as FormatQuoteIcon,
-} from "@mui/icons-material"
-
-// Define the Idea type
-interface Idea {
-    id: number
-    title: string
-    description: string
-    bookmarked?: boolean
-}
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  Create as CreateIcon,
+  FormatQuote as FormatQuoteIcon,
+  Edit as EditIcon,
+  AccountCircle as AccountCircleIcon,
+} from "@mui/icons-material";
+import { Idea } from "../types/idea";
+import Randomizer from "../components/Randomizer";
+import LogoutButton from "../components/LogoutButton";
 
 const Home = () => {
-    const theme = useTheme()
-    const dispatch = useDispatch()
-    const ideas = useSelector((state: RootState) => state.ideas.ideas)
-    const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
-    const navigate = useNavigate()
-    const [bookmarkedIdeas, setBookmarkedIdeas] = useState<Record<number, boolean>>({})
-
-    useEffect(() => {
-        const fetchedIdeas: Idea[] = [
-            {
-                id: 1,
-                title: "Write about a mysterious event",
-                description: "Describe a moment of suspense or excitement that changed the course of someone's life",
-            },
-            {
-                id: 2,
-                title: "Write about a new technology",
-                description: "Imagine how a revolutionary technology might transform society and human relationships",
-            },
-            {
-                id: 3,
-                title: "Write about a journey",
-                description: "Tell the story of an unexpected adventure that leads to self-discovery",
-            },
-            {
-                id: 4,
-                title: "Write about a forgotten memory",
-                description: "Explore how a resurfaced memory impacts the present",
-            },
-            {
-                id: 5,
-                title: "Write about a chance encounter",
-                description: "Describe a brief meeting between strangers that has lasting consequences",
-            },
-        ]
-
-        dispatch(setIdeas(fetchedIdeas))
-    }, [dispatch])
-
-    const handleSelectIdea = (idea: Idea) => {
-        dispatch(selectIdea(idea))
-        navigate("/write")
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const [bookmarkedIdeas, setBookmarkedIdeas] = useState<
+    Record<string, boolean>
+  >({});
+  const [page, setPage] = useState(1);
+  const {
+    data: ideasData,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetIdeasQuery(
+    {
+      page,
+      limit: 10, // Mantener el límite por página
+    },
+    {
+      skip: !localStorage.getItem("token"),
     }
+  );
+  const handleSelectIdea = (idea: Idea) => {
+    navigate("/write", { state: { ideaId: idea.id } });
+  };
 
-    const toggleBookmark = (id: number) => {
-        setBookmarkedIdeas((prev) => ({
-            ...prev,
-            [id]: !prev[id],
-        }))
-    }
+  const toggleBookmark = (id: string) => {
+    setBookmarkedIdeas((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
+  // Manejar cambio de página
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    refetch(); // Refrescar los datos
+  };
+
+  if (isLoading) {
     return (
-        <Container maxWidth="lg" sx={{ py: 5 }}>
-            <Button onClick={() => navigate("/profile")} variant="contained">  👤 Profile </Button>
-            <Box
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Paper
+        elevation={2}
+        sx={{
+          p: 4,
+          textAlign: "center",
+          borderRadius: 2,
+          bgcolor: `${theme.palette.error.light}20`,
+          margin: 2,
+        }}
+      >
+        <Typography variant="h6" color="error">
+          Error al cargar las ideas. Por favor, intente nuevamente.
+        </Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 5 }}>
+      {/* Header: Profile & Logout */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Button
+          onClick={() => navigate("/profile")}
+          variant="contained"
+          startIcon={<AccountCircleIcon />}
+          sx={{
+            textTransform: 'none',
+            borderRadius: 2,
+            boxShadow: theme.shadows[2],
+            '&:hover': { boxShadow: theme.shadows[4] }
+          }}
+        >
+          Mi Perfil
+        </Button>
+        <LogoutButton />
+      </Box>
+
+      {/* Título e introducción */}
+      <Paper
+        elevation={2}
+        sx={{
+          textAlign: 'center',
+          mb: 6,
+          p: 4,
+          borderRadius: 2,
+          background: `linear-gradient(135deg, ${theme.palette.primary.light}15, ${theme.palette.secondary.light}15)`,
+        }}
+      >
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          sx={{
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            mb: 2,
+          }}
+        >
+          <CreateIcon
+            sx={{ mr: 2, fontSize: 40, color: theme.palette.primary.main }}
+          />
+          Writing Inspiration
+        </Typography>
+
+        <Typography
+          variant="h6"
+          color="text.secondary"
+          sx={{ maxWidth: 700, mx: "auto", mb: 4 }}
+        >
+          Choose an idea to spark your creativity or generate a random prompt to
+          begin your writing journey
+        </Typography>
+
+        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          <Randomizer setSelectedIdea={handleSelectIdea} />
+        </Box>
+      </Paper>
+
+      <Divider sx={{ mb: 6 }}>
+        <Chip
+          icon={<FormatQuoteIcon />}
+          label="Writing Prompts"
+          color="primary"
+        />
+      </Divider>
+
+      <Grid container spacing={3}>
+        {ideasData?.data?.map((idea: Idea, index: number) => (
+          <Grid item xs={12} sm={6} md={4} key={idea.id}>
+            <Zoom in timeout={500} style={{ transitionDelay: `${index * 100}ms` }}>
+              <Card
+                elevation={3}
                 sx={{
-                    textAlign: "center",
-                    mb: 6,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
+                  boxShadow: theme.shadows[1],
+                  '&:hover': {
+                    transform: 'translateY(-6px)',
+                    boxShadow: theme.shadows[6],
+                  }
                 }}
-            >
-                <Typography
-                    variant="h3"
-                    component="h1"
-                    gutterBottom
-                    sx={{
-                        fontWeight: "bold",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        mb: 2,
-                    }}
-                >
-                    <CreateIcon sx={{ mr: 2, fontSize: 40, color: theme.palette.primary.main }} />
-                    Writing Inspiration
-                </Typography>
-
-                <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 700, mx: "auto", mb: 4 }}>
-                    Choose an idea to spark your creativity or generate a random prompt to begin your writing journey
-                </Typography>
-
-                <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                    <Randomizer setSelectedIdea={setSelectedIdea} />
-                </Box>
-            </Box>
-
-            <Divider sx={{ mb: 6 }}>
-                <Chip icon={<FormatQuoteIcon />} label="Writing Prompts" color="primary" />
-            </Divider>
-
-            <Grid container spacing={3}>
-                {ideas &&
-                    ideas.map((idea, index) => (
-                        <Grid item xs={12} sm={6} md={4} key={idea.id}>
-                            <Zoom in={true} style={{ transitionDelay: `${index * 100}ms` }}>
-                                <Card
-                                    sx={{
-                                        height: "100%",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        borderRadius: 2,
-                                        transition: "all 0.3s ease",
-                                        "&:hover": {
-                                            transform: "translateY(-5px)",
-                                            boxShadow: 6,
-                                        },
-                                    }}
-                                >
-                                    <CardHeader
-                                        title={
-                                            <Typography variant="h6" component="h2" sx={{ fontWeight: "bold" }}>
-                                                Prompt #{idea.id}
-                                            </Typography>
-                                        }
-                                        action={
-                                            <Tooltip title={bookmarkedIdeas[idea.id] ? "Remove bookmark" : "Bookmark this idea"}>
-                                                <IconButton
-                                                    aria-label="bookmark"
-                                                    onClick={() => toggleBookmark(idea.id)}
-                                                    color={bookmarkedIdeas[idea.id] ? "primary" : "default"}
-                                                >
-                                                    {bookmarkedIdeas[idea.id] ? <BookmarkIcon /> : <BookmarkBorderIcon />}
-                                                </IconButton>
-                                            </Tooltip>
-                                        }
-                                        sx={{
-                                            bgcolor: `${theme.palette.primary.main}10`,
-                                            borderBottom: `1px solid ${theme.palette.divider}`,
-                                        }}
-                                    />
-
-                                    <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-                                        <Typography
-                                            variant="h6"
-                                            gutterBottom
-                                            sx={{
-                                                color: theme.palette.text.primary,
-                                                fontWeight: "medium",
-                                                mb: 2,
-                                            }}
-                                        >
-                                            {idea.title}
-                                        </Typography>
-
-                                        <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1, mb: 2 }}>
-                                            {idea.description}
-                                        </Typography>
-                                    </CardContent>
-
-                                    <CardActions sx={{ p: 2, pt: 0, justifyContent: "flex-end" }}>
-                                        <Button
-                                            onClick={() => handleSelectIdea(idea)}
-                                            variant="contained"
-                                            color="primary"
-                                            startIcon={<EditIcon />}
-                                            sx={{
-                                                borderRadius: 4,
-                                                px: 2,
-                                            }}
-                                        >
-                                            Start Writing
-                                        </Button>
-                                    </CardActions>
-                                </Card>
-                            </Zoom>
-                        </Grid>
-                    ))}
-            </Grid>
-
-            {(!ideas || ideas.length === 0) && (
-                <Paper
-                    elevation={2}
-                    sx={{
-                        p: 4,
-                        textAlign: "center",
-                        borderRadius: 2,
-                        bgcolor: `${theme.palette.warning.light}20`,
-                    }}
-                >
-                    <Typography variant="h6" color="text.secondary">
-                        No writing prompts available. Try generating a random idea!
+              >
+                <CardHeader
+                  title={
+                    <Typography sx={{ fontWeight: 'bold' }}>{idea.title}</Typography>
+                  }
+                  subheader={
+                    <Typography variant="body2" color="text.secondary">
+                      {idea.content.substring(0, 80)}...
                     </Typography>
-                </Paper>
-            )}
-        </Container>
-    )
-}
+                  }
+                  sx={{
+                    bgcolor: `${theme.palette.primary.light}15`,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  }}
+                />
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: theme.palette.text.primary, lineHeight: 1.6 }}
+                    gutterBottom
+                  >
+                    {idea.content.substring(0, 100)}...
+                  </Typography>
+                </CardContent>
+                <Divider />
+                <CardActions sx={{ p: 2, justifyContent: 'space-between' }}>
+                  <Button
+                    onClick={() => handleSelectIdea(idea)}
+                    variant="contained"
+                    color="primary"
+                    startIcon={<EditIcon />}
+                    sx={{
+                      textTransform: 'none',
+                      borderRadius: 2,
+                      boxShadow: theme.shadows[2],
+                      '&:hover': { boxShadow: theme.shadows[4] }
+                    }}
+                  >
+                    Escribir
+                  </Button>
+                  <Tooltip title="Ver detalles">
+                    <IconButton onClick={() => handleSelectIdea(idea)}>
+                      <FormatQuoteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </CardActions>
+              </Card>
+            </Zoom>
+          </Grid>
+        ))}
+      </Grid>
 
-export default Home
+      {(!ideasData?.data || ideasData.data.length === 0) && (
+        <Paper
+          elevation={1}
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            borderRadius: 2,
+            bgcolor: `${theme.palette.warning.light}20`,
+          }}
+        >
+          <Typography variant="h6" color="text.secondary">
+            No hay ideas disponibles. ¡Genera una idea aleatoria!
+          </Typography>
+        </Paper>
+      )}
 
+      {/* Paginación */}
+      <Box display="flex" justifyContent="center" alignItems="center" mt={4} gap={2}>
+        <Button
+          onClick={() => handlePageChange(page - 1)}
+          disabled={page === 1}
+          variant="outlined"
+          sx={{ textTransform: 'none', borderRadius: 2 }}
+        >
+          Anterior
+        </Button>
+        <Chip
+          label={`Página ${page}`}
+          color="primary"
+          variant="outlined"
+          sx={{ fontWeight: 'medium' }}
+        />
+        <Button
+          onClick={() => handlePageChange(page + 1)}
+          disabled={!ideasData?.data || ideasData.data.length < 10}
+          variant="outlined"
+          sx={{ textTransform: 'none', borderRadius: 2 }}
+        >
+          Siguiente
+        </Button>
+      </Box>
+    </Container>
+  );
+};
+
+export default Home;

@@ -13,60 +13,37 @@ import {
     useTheme,
     Chip,
     Tooltip,
+    CircularProgress,
 } from "@mui/material"
 import { Casino as CasinoIcon, Edit as EditIcon, Lightbulb as LightbulbIcon } from "@mui/icons-material"
 import { useNavigate } from "react-router-dom"
-
-// Define the Idea type
-interface Idea {
-    id: number
-    title: string
-    description: string
-}
-
-const ideaPool: Idea[] = [
-    {
-        id: 1,
-        title: "Write about a mysterious event",
-        description: "Describe a moment of suspense or excitement that changed everything",
-    },
-    {
-        id: 2,
-        title: "Write about a new technology",
-        description: "Imagine how a futuristic technology might impact everyday life",
-    },
-    {
-        id: 3,
-        title: "Write about an alien invasion",
-        description: "Create a scenario where Earth encounters extraterrestrial beings",
-    },
-    {
-        id: 4,
-        title: "Write about a hidden talent",
-        description: "Explore a character who discovers an unusual ability they never knew they had",
-    },
-    {
-        id: 5,
-        title: "Write about a time traveler",
-        description: "Describe someone who accidentally travels to a different era",
-    },
-]
+import { useGetRandomIdeaQuery } from "../features/api/apiSlice"
+import { Idea } from "../types/idea"
 
 const Randomizer = ({ setSelectedIdea }: { setSelectedIdea: (idea: Idea) => void }) => {
     const theme = useTheme()
-    const [randomIdea, setRandomIdea] = useState<Idea | null>(null)
-    const [isGenerating, setIsGenerating] = useState(false)
     const navigate = useNavigate()
+    const { data: randomIdea, refetch, isFetching, isError } = useGetRandomIdeaQuery(undefined, {
+        refetchOnMountOrArgChange: true
+    })
 
-    const generateRandomIdea = () => {
-        setIsGenerating(true)
 
-        // Add a small delay for animation effect
-        setTimeout(() => {
-            const idea = ideaPool[Math.floor(Math.random() * ideaPool.length)]
-            setRandomIdea(idea)
-            setIsGenerating(false)
-        }, 600)
+    const handleGenerateIdea = async () => {
+        try {
+            
+            await refetch()
+            
+        } catch (error) {
+            console.error("Error al generar idea aleatoria:", error)
+        }
+    }
+
+    const handleSelectIdea = () => {
+        if (randomIdea) {
+            navigate("/write", { state: { ideaId: randomIdea?.id } })
+        } else {
+            console.log('Randomizer - No hay idea para seleccionar')
+        }
     }
 
     return (
@@ -109,12 +86,12 @@ const Randomizer = ({ setSelectedIdea }: { setSelectedIdea: (idea: Idea) => void
                 </Typography>
 
                 <Button
-                    onClick={generateRandomIdea}
+                    onClick={handleGenerateIdea}
                     variant="contained"
                     color="primary"
                     size="large"
-                    disabled={isGenerating}
-                    startIcon={<CasinoIcon />}
+                    disabled={isFetching}
+                    startIcon={isFetching ? <CircularProgress size={20} /> : <CasinoIcon />}
                     sx={{
                         px: 3,
                         py: 1,
@@ -126,12 +103,38 @@ const Randomizer = ({ setSelectedIdea }: { setSelectedIdea: (idea: Idea) => void
                         },
                     }}
                 >
-                    {isGenerating ? "Generating..." : "Generate Random Idea"}
+                    {isFetching ? "Generating..." : "Generate Random Idea"}
                 </Button>
 
-                <Fade in={randomIdea !== null} timeout={800}>
-                    <Box sx={{ width: "100%" }}>
-                        {randomIdea && (
+                {/* Handling fallback and idea display */}
+                {isFetching ? (
+                  <Box sx={{ mt: 2 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : (!randomIdea || isError || !randomIdea.title || !randomIdea.content) ? (
+                  <Paper elevation={3} sx={{ p: 3, textAlign: 'center', mt: 2 }}>
+                    {isError ? (
+                      <Typography color="error" gutterBottom>
+                        Error al obtener idea. Inténtalo de nuevo.
+                      </Typography>
+                    ) : (
+                      <Typography color="warning.main" gutterBottom>
+                        No se encontró una idea válida.
+                      </Typography>
+                    )}
+                    <Button
+                      onClick={handleGenerateIdea}
+                      variant="outlined"
+                      disabled={isFetching}
+                      sx={{ mt: 1, textTransform: 'none' }}
+                    >
+                      {isFetching ? <CircularProgress size={16} /> : 'Generar idea'}
+                    </Button>
+                  </Paper>
+                ) : (
+                  <Fade in timeout={800} style={{ transitionDelay: randomIdea ? '200ms' : '0ms' }}>
+                    <Box sx={{ width: "100%", mt: 2 }}>
+                      {randomIdea && (
                             <Card
                                 sx={{
                                     width: "100%",
@@ -166,7 +169,7 @@ const Randomizer = ({ setSelectedIdea }: { setSelectedIdea: (idea: Idea) => void
                                     </Typography>
 
                                     <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 1 }}>
-                                        {randomIdea.description}
+                                        {randomIdea.content}
                                     </Typography>
                                 </CardContent>
 
@@ -177,11 +180,7 @@ const Randomizer = ({ setSelectedIdea }: { setSelectedIdea: (idea: Idea) => void
                                             color="primary"
                                             size="small"
                                             startIcon={<EditIcon />}
-                                            onClick={() => {
-                                                setSelectedIdea(randomIdea)
-                                                navigate("/write")
-                                            }}
-
+                                            onClick={handleSelectIdea}
                                             sx={{ borderRadius: 4 }}
                                         >
                                             Select to write
@@ -191,7 +190,8 @@ const Randomizer = ({ setSelectedIdea }: { setSelectedIdea: (idea: Idea) => void
                             </Card>
                         )}
                     </Box>
-                </Fade>
+                  </Fade>
+                )}
             </Box>
         </Paper>
     )
