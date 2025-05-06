@@ -9,7 +9,6 @@ import {
 import {
   useLoginMutation,
   useGetCurrentUserQuery,
-  useRegisterMutation,
 } from "../features/api/apiSlice";
 import { RootState } from "../store";
 import {
@@ -39,7 +38,7 @@ const Login = () => {
   const [login] = useLoginMutation();
   const { data: userData, refetch } = useGetCurrentUserQuery(undefined, {
     skip: false, // Permitir que el query se ejecute siempre
-});
+  });
 
   // Redirigir si ya está autenticado
   useEffect(() => {
@@ -56,41 +55,44 @@ const Login = () => {
     dispatch(loginStart());
 
     try {
-        // Intentar iniciar sesión
-        const response = await login({ email, password }).unwrap();
-        console.log("Respuesta del servidor:", response);
+      // Intentar iniciar sesión
+      const response = await login({ email, password }).unwrap();
+      console.log("Respuesta del servidor:", response);
 
-        if (!response.token) {
-            throw new Error("No se recibió un token válido del servidor.");
-        }
+      if (!response.token) {
+        throw new Error("No se recibió un token válido del servidor.");
+      }
 
-        // Guardar el token en localStorage
-        localStorage.setItem("token", response.token);
+      // Guardar el token en localStorage
+      localStorage.setItem("token", response.token);
 
-        // Refrescar datos del usuario autenticado
-        const userResponse = await refetch();
-        if (!userResponse.data) {
-            throw new Error("Error al obtener los datos del usuario.");
-        }
+      // Refrescar datos del usuario autenticado
+      const userResponse = await refetch();
+      if (!userResponse.data) {
+        throw new Error("Error al obtener los datos del usuario.");
+      }
 
-        console.log("Datos del usuario:", userResponse.data);
+      console.log("Datos del usuario:", userResponse.data);
 
-        // Guardar en el estado global
-        dispatch(loginSuccess({ user: userResponse.data, token: response.token }));
+      // Guardar en el estado global
+      dispatch(
+        loginSuccess({ user: userResponse.data, token: response.token })
+      );
 
-        // Redirigir según el rol del usuario
-        const redirectPath = userResponse.data.role === 'ADMIN' ? '/admin/dashboard' : '/';
-        navigate(redirectPath, { replace: true });
-
+      // Redirigir según el rol del usuario
+      const redirectPath =
+        userResponse.data.role === "ADMIN" ? "/admin/dashboard" : "/";
+      navigate(redirectPath, { replace: true });
     } catch (err: any) {
-        console.error("Error en el login:", err);
-        const errorMessage = err.data?.message || err.message || "Ocurrió un error inesperado.";
-        setError(errorMessage);
-        dispatch(loginFailure(errorMessage));
+      console.error("Error en el login:", err);
+      const errorMessage =
+        err.data?.message || err.message || "Ocurrió un error inesperado.";
+      setError(errorMessage);
+      dispatch(loginFailure(errorMessage));
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-};
+  };
   return (
     <Container maxWidth="sm">
       <Box

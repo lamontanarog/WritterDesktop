@@ -1,9 +1,6 @@
 "use client"
-
 import type React from "react"
-
 import { useState, useEffect } from "react"
-import { useDispatch } from "react-redux"
 import { useNavigate, useLocation } from "react-router-dom"
 import {
   Box,
@@ -28,13 +25,11 @@ import {
   TextFields as TextFieldsIcon,
 } from "@mui/icons-material"
 import { useGetIdeaByIdQuery, useCreateTextMutation } from "../features/api/apiSlice"
-import { Idea } from "../types/idea"
 import { toast } from 'sonner'
 
 const Write = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
   const ideaId = location.state?.ideaId
