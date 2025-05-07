@@ -6,8 +6,10 @@ import { useLoginMutation, useGetCurrentUserQuery, useLazyGetCurrentUserQuery } 
 import { RootState } from "../store";
 import {
   Box, Button, TextField, Typography, Paper,
-  Container, Link, Alert, CircularProgress
+  Container, Link, Alert, CircularProgress,
+  Avatar
 } from "@mui/material";
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useTheme } from "@mui/material/styles";
 
 const Login = () => {
@@ -74,8 +76,11 @@ const Login = () => {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", flexDirection: "column" }}>
+      <Box sx={{display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center", minHeight: { xs: "100vh", sm: "70vh", lg: "50vh" }, mt: { xs: 4, sm: 8, md: 12 }, mb: { xs: 4, sm: 8, md: 12 } }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+           <Avatar sx={{ bgcolor: "primary.main", width: 56, height: 56, mx: "auto", mb: 2 }}>
+              <AccountCircleIcon fontSize="large" />
+            </Avatar>
           <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
             Iniciar Sesión
           </Typography>
