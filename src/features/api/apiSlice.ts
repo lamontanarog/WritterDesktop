@@ -2,13 +2,15 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { AuthResponse, LoginCredentials, RegisterCredentials, User } from '../../types/auth';
 import { Idea, IdeasResponse } from '../../types/idea';
 import { Text, TextsResponse } from '../../types/text';
+import { RootState } from '../../store';
 
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
     baseUrl: 'https://writterdesktopbackend.onrender.com',
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
+    prepareHeaders: (headers, { getState }) => {
+      const state = getState() as RootState;
+      const token = state.user.token;
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
@@ -135,6 +137,7 @@ export const {
   useRegisterMutation,
   useLoginMutation,
   useGetCurrentUserQuery,
+  useLazyGetCurrentUserQuery,
   // Ideas
   useGetRandomIdeaQuery,
   useGetIdeasQuery,
