@@ -1,4 +1,5 @@
-import {createSlice, PayloadAction} from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "../../store";
 
 export type UserRole = 'USER' | 'ADMIN';
 
@@ -50,7 +51,7 @@ const userSlice = createSlice({
             state.role = action.payload.user.role;
             state.loading = false;
             state.error = null;
-            
+
             // Guardar en localStorage
             localStorage.setItem('token', action.payload.token);
             localStorage.setItem('user', JSON.stringify(action.payload.user));
@@ -61,7 +62,7 @@ const userSlice = createSlice({
             state.error = action.payload;
             state.token = null;
             state.role = null;
-            
+
             // Limpiar localStorage en caso de error
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -74,7 +75,7 @@ const userSlice = createSlice({
             state.error = null;
             state.token = null;
             state.role = null;
-            
+
             // Limpiar localStorage
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -89,5 +90,7 @@ const userSlice = createSlice({
     }
 });
 
+export const selectIsAuthenticated = (state: RootState) => state.user.isAuthenticated;
+export const selectUserRole = (state: RootState) => state.user.role;
 export const { loginStart, loginSuccess, loginFailure, logout, updateUser } = userSlice.actions;
 export default userSlice.reducer;

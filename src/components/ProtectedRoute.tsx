@@ -2,6 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useGetCurrentUserQuery } from '../features/api/apiSlice';
 import { CircularProgress, Box } from '@mui/material';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated } from '../features/user/userSlice';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -10,9 +12,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRoles, role }: ProtectedRouteProps) => {
+    const isAuthenticated = useSelector(selectIsAuthenticated)
     const location = useLocation();
     const { data: user, isLoading, isError } = useGetCurrentUserQuery(undefined, {
-        skip: !localStorage.getItem('token')
+        skip: !isAuthenticated
       });
 
     const neededRoles = allowedRoles ?? (role ? [role] : undefined);

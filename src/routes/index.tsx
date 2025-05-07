@@ -6,6 +6,7 @@ import Write from "../pages/Write";
 import Profile from "../pages/Profile";
 import Dashboard from "../pages/admin/Dashboard";
 import ProtectedRoute from "../components/ProtectedRoute";
+import Landing from "../components/Landing";
 
 export const AppRoutes = () => {
   return (
@@ -17,6 +18,10 @@ export const AppRoutes = () => {
       {/* Rutas protegidas para usuarios normales */}
       <Route
         path="/"
+        element={<Landing/>}
+      />
+      <Route
+        path="/home"
         element={
           <ProtectedRoute role="USER">
             <Home />
