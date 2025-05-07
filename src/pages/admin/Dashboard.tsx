@@ -12,6 +12,7 @@ import {
   TextField,
   IconButton,
   CircularProgress,
+  Pagination,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 import {
@@ -36,13 +37,15 @@ const Dashboard = () => {
     data: ideasData,
     isLoading,
     refetch,
-  } = useGetIdeasQuery({ page, search });
+  } = useGetIdeasQuery({ page, limit: 10, search });
   const [createIdea] = useCreateIdeaMutation();
   const [updateIdea] = useUpdateIdeaMutation();
   const [deleteIdea] = useDeleteIdeaMutation();
 
-  const handlePageChange = (newPage: number) => setPage(newPage);
-  console.log(handlePageChange(2));
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    refetch();
+  };
   const handleOpenDialog = (idea: Idea | null = null) => {
     setSelectedIdea(idea);
     setDialogOpen(true);
@@ -160,6 +163,14 @@ const Dashboard = () => {
           </Grid>
         )}
 
+        {/* Paginación */}
+        <Box display="flex" justifyContent="center" mt={4}>
+          <Pagination
+            count={ideasData?.totalPages}
+            page={page}
+            onChange={(e, page) => handlePageChange(page)}
+          />
+        </Box>
         <IdeaFormDialog
           open={dialogOpen}
           onClose={handleCloseDialog}
