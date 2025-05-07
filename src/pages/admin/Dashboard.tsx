@@ -168,7 +168,7 @@ const Dashboard = () => {
           <Pagination
             count={ideasData?.totalPages}
             page={page}
-            onChange={(e, page) => handlePageChange(page)}
+            onChange={(_, page) => handlePageChange(page)}
           />
         </Box>
         <IdeaFormDialog
