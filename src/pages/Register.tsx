@@ -58,7 +58,7 @@ const Register = () => {
       dispatch(
         loginSuccess({ user: userResponse.data, token: response.token })
       );
-      navigate("/", { replace: true });
+      navigate("/home", { replace: true });
     } catch (err: any) {
       console.error("Register error:", err);
       setError("Error al registrar el usuario. Intente nuevamente.");

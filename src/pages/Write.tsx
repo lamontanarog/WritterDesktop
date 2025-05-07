@@ -93,7 +93,7 @@ const Write = () => {
 
       console.log('Write - Texto guardado exitosamente')
       toast.success('Texto guardado exitosamente')
-      navigate("/", { replace: true })
+      navigate("/home", { replace: true })
     } catch (error) {
       console.error('Write - Error al guardar el texto:', error)
       toast.error('Error al guardar el texto')
@@ -111,7 +111,7 @@ const Write = () => {
           <Typography variant="body1" color="text.secondary" paragraph>
             {isIdeaError ? 'Ocurrió un error al obtener la idea.' : 'Selecciona una idea para comenzar a escribir'}
           </Typography>
-          <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={() => navigate("/", { replace: true })} sx={{ mt: 2 }}>
+          <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={() => navigate("/home", { replace: true })} sx={{ mt: 2 }}>
             Volver al inicio
           </Button>
         </Paper>
@@ -131,7 +131,7 @@ const Write = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
         <IconButton 
-          onClick={() => navigate("/", { replace: true })} 
+          onClick={() => navigate("/home", { replace: true })} 
           sx={{ mb: 2 }} 
           aria-label="volver"
         >

@@ -2,15 +2,13 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { AuthResponse, LoginCredentials, RegisterCredentials, User } from '../../types/auth';
 import { Idea, IdeasResponse } from '../../types/idea';
 import { Text, TextsResponse } from '../../types/text';
-import { RootState } from '../../store';
 
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'https://writterdesktopbackend.onrender.com',
-    prepareHeaders: (headers, { getState }) => {
-      const state = getState() as RootState;
-      const token = state.user.token;
+    baseUrl: 'https://writterdesktopbackend-production.up.railway.app',
+    prepareHeaders: (headers) => {
+     const token = localStorage.getItem('token');
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
@@ -80,15 +78,13 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Idea', id }],
     }),
-
     deleteIdea: builder.mutation<{ message: string }, string>({
       query: (id) => ({
         url: `/api/ideas/${id}`,
-        method: 'DELETE',
+        method: 'DELETE'
       }),
       invalidatesTags: ['Idea'],
     }),
-
     // 📝 TEXTOS
     getTexts: builder.query<TextsResponse, { page?: number; limit?: number; ideaId?: string; startDate?: string; endDate?: string }>({
       query: ({ page = 1, limit = 10, ideaId, startDate, endDate }) => ({
