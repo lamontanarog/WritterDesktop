@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginStart, loginSuccess, loginFailure } from "../features/user/userSlice";
-import { useLoginMutation, useGetCurrentUserQuery, useLazyGetCurrentUserQuery } from "../features/api/apiSlice";
+import { useLoginMutation, useLazyGetCurrentUserQuery } from "../features/api/apiSlice";
 import { RootState } from "../store";
 import {
   Box, Button, TextField, Typography, Paper,
@@ -25,7 +25,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [login] = useLoginMutation();
-  // const { refetch } = useGetCurrentUserQuery(undefined, { skip: true });
   const [triggerGetCurrentUser] = useLazyGetCurrentUserQuery();
 
   useEffect(() => {

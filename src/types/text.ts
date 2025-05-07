@@ -1,5 +1,3 @@
-import { Idea } from './idea'
-
 export interface Idea {
   id: string;
   title: string;
@@ -14,7 +12,7 @@ export interface Text {
   content: string;
   time: number;
   wordCount: number;
-  ideaId: string;
+  ideaId: number;
   userId: string;
   createdAt: string;
 }

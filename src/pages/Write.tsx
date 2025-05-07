@@ -85,7 +85,7 @@ const Write = () => {
     try {
       
       await createText({
-        ideaId: selectedIdea.id,
+        ideaId: parseInt(selectedIdea.id),
         content: text,
         time: timer,
         wordCount

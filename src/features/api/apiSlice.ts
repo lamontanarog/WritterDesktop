@@ -58,7 +58,7 @@ export const apiSlice = createApi({
 
     getIdeaById: builder.query<Idea, string>({
       query: (id) => `/api/ideas/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Idea', id }],
+      providesTags: (result, error, id) => [{ type: 'Idea', id, result, error }],
     }),
 
     createIdea: builder.mutation<Idea, Partial<Idea>>({
@@ -76,7 +76,7 @@ export const apiSlice = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Idea', id }],
+      invalidatesTags: (result, error, { id }) => [{ type: 'Idea', id, result, error }],
     }),
     deleteIdea: builder.mutation<{ message: string }, string>({
       query: (id) => ({
@@ -96,7 +96,7 @@ export const apiSlice = createApi({
 
     getTextById: builder.query<Text, string>({
       query: (id) => `/api/texts/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Text', id }],
+      providesTags: (result, error, id) => [{ type: 'Text', id, result, error }],
     }),
 
     createText: builder.mutation<Text, Partial<Text>>({
@@ -114,7 +114,7 @@ export const apiSlice = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Text', id }],
+      invalidatesTags: (result, error, { id }) => [{ type: 'Text', id, result, error }],
     }),
 
     deleteText: builder.mutation<{ message: string }, string>({

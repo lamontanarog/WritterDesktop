@@ -25,7 +25,7 @@ import { useGetRandomIdeaQuery } from "../features/api/apiSlice";
 import { Idea } from "../types/idea";
 
 const Randomizer = ({
-  setSelectedIdea,
+  
 }: {
   setSelectedIdea: (idea: Idea) => void;
 }) => {
@@ -34,8 +34,7 @@ const Randomizer = ({
   const {
     data: randomIdea,
     refetch,
-    isFetching,
-    isError,
+    isFetching
   } = useGetRandomIdeaQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });

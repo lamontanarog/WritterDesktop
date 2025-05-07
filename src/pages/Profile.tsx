@@ -74,7 +74,9 @@ const Profile = () => {
   const ideasMap = useMemo(() => {
     return (
       ideasResponse?.data.reduce((acc, idea) => {
+        if (typeof idea.id === 'number'){
         acc[idea.id] = idea;
+        }
         return acc;
       }, {} as Record<number, Idea>) || {}
     );

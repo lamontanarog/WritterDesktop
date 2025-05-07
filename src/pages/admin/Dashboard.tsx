@@ -41,6 +41,8 @@ const Dashboard = () => {
   const [updateIdea] = useUpdateIdeaMutation();
   const [deleteIdea] = useDeleteIdeaMutation();
 
+  const handlePageChange = (newPage: number) => setPage(newPage);
+  console.log(handlePageChange(2));
   const handleOpenDialog = (idea: Idea | null = null) => {
     setSelectedIdea(idea);
     setDialogOpen(true);
