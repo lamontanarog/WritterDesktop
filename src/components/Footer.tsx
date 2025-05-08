@@ -1,5 +1,3 @@
-// Footer.tsx - Pie de página estilizado siguiendo la estética general
-
 import { Box, Container, Typography, Link, Stack, Divider, useTheme } from '@mui/material';
 import { Lightbulb } from '@mui/icons-material';
 

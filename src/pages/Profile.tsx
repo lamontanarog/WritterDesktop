@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+// Profile.tsx refactorizado para mayor claridad y legibilidad
+
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -39,16 +41,16 @@ import { Idea } from "../types/idea";
 const Profile = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+
+  const [page, setPage] = useState(1);
   const [selectedText, setSelectedText] = useState<Text | null>(null);
   const [editContent, setEditContent] = useState("");
-  const [page, setPage] = useState(1);
+  const [dialogs, setDialogs] = useState({
+    view: false,
+    edit: false,
+    delete: false,
+  });
 
-  // Diálogos
-  const [openDialog, setOpenDialog] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-
-  // Fetch de usuario y textos
   const {
     data: user,
     isLoading: isLoadingUser,
@@ -56,36 +58,36 @@ const Profile = () => {
   } = useGetCurrentUserQuery(undefined, {
     skip: !localStorage.getItem("token"),
   });
+
   const {
     data: textsResponse,
     isLoading: isLoadingTexts,
     isError: isTextsError,
     refetch,
-  } = useGetTextsQuery(
-    { page, limit: 10 },
-    { skip: !localStorage.getItem("token") }
-  );
-  const texts = textsResponse?.data || [];
+  } = useGetTextsQuery({ page, limit: 10 }, {
+    skip: !localStorage.getItem("token"),
+  });
 
-  // Fetch de ideas
   const { data: ideasResponse } = useGetIdeasQuery(
     { page: 1, limit: 100 },
-    { skip: texts.length === 0 }
+    { skip: !textsResponse?.data.length }
   );
 
-  const ideasMap = useMemo(() => {
-    return (
-      ideasResponse?.data.reduce((acc, idea) => {
-        if (typeof idea.id === "number") {
-          acc[idea.id] = idea;
-        }
-        return acc;
-      }, {} as Record<number, Idea>) || {}
-    );
-  }, [ideasResponse]);
+  useEffect(() => {
+    if (user) {
+      refetch(); // fuerza que se recarguen los textos para el nuevo usuario
+    }
+  }, [user]);
 
   const [deleteText, { isLoading: isDeleting }] = useDeleteTextMutation();
   const [updateText, { isLoading: isUpdating }] = useUpdateTextMutation();
+
+  const ideasMap = useMemo(() => {
+    return ideasResponse?.data.reduce((acc, idea) => {
+      if (typeof idea.id === "number") acc[idea.id] = idea;
+      return acc;
+    }, {} as Record<number, Idea>) || {};
+  }, [ideasResponse]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -98,7 +100,7 @@ const Profile = () => {
       await deleteText(selectedText.id).unwrap();
       toast.success("Texto eliminado exitosamente");
       refetch();
-      setOpenDeleteDialog(false);
+      setDialogs((d) => ({ ...d, delete: false }));
     } catch {
       toast.error("Error al eliminar texto");
     }
@@ -117,25 +119,25 @@ const Profile = () => {
       }).unwrap();
       toast.success("Texto actualizado exitosamente");
       refetch();
-      setOpenEditDialog(false);
+      setDialogs((d) => ({ ...d, edit: false }));
     } catch {
       toast.error("Error al actualizar texto");
     }
   };
 
-  if (isLoadingUser || isLoadingTexts)
+  const texts = textsResponse?.data || [];
+
+  if (isLoadingUser || isLoadingTexts) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress color="secondary" />
       </Box>
     );
-  if (isUserError || !user)
+  }
+
+  if (isUserError || !user) {
     return <Alert severity="error">Error al cargar el perfil</Alert>;
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -149,54 +151,18 @@ const Profile = () => {
       </Button>
 
       {/* Perfil del Usuario */}
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          mb: 4,
-          bgcolor: "background.paper",
-          color: "text.primary",
-          borderRadius: 3,
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: { xs: "center", sm: "flex-start" },
-          justifyContent: "space-between",
-          gap: 4,
-          boxShadow: (theme) => theme.shadows[4],
-        }}
-      >
-        {/* Sección izquierda: Avatar + datos */}
+      <Paper elevation={3} sx={{ p: 4, mb: 4, borderRadius: 3, display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", justifyContent: "space-between", gap: 4 }}>
         <Box display="flex" alignItems="center" gap={3}>
-          <Avatar
-            sx={{
-              width: 80,
-              height: 80,
-              fontSize: 32,
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-            }}
-          >
-            {user.name.charAt(0).toUpperCase()}
-          </Avatar>
+          <Avatar sx={{ width: 80, height: 80 }}>{user.name.charAt(0).toUpperCase()}</Avatar>
           <Box>
-            <Typography variant="h5" fontWeight="bold">
-              {user.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {user.email}
-            </Typography>
-            
+            <Typography variant="h5" fontWeight="bold">{user.name}</Typography>
+            <Typography variant="body2" color="text.secondary">{user.email}</Typography>
           </Box>
         </Box>
-        <Box alignSelf={{ xs: "center", sm: "flex-start" }}>
-          <LogoutButton />
-        </Box>
+        <LogoutButton />
       </Paper>
-
       {/* Lista de textos */}
-      <Typography variant="h5" mb={3}>
-        <TextFieldsIcon /> Mis Textos
-      </Typography>
+      <Typography variant="h5" mb={3}><TextFieldsIcon /> Mis Textos</Typography>
       {isTextsError ? (
         <Alert severity="error">Error al cargar los textos</Alert>
       ) : texts.length > 0 ? (
@@ -205,19 +171,9 @@ const Profile = () => {
             key={text.id}
             text={text}
             ideaTitle={ideasMap[text.ideaId]?.title || "Sin título"}
-            onView={() => {
-              setSelectedText(text);
-              setOpenDialog(true);
-            }}
-            onEdit={() => {
-              setSelectedText(text);
-              setEditContent(text.content);
-              setOpenEditDialog(true);
-            }}
-            onDelete={() => {
-              setSelectedText(text);
-              setOpenDeleteDialog(true);
-            }}
+            onView={() => { setSelectedText(text); setDialogs((d) => ({ ...d, view: true })); }}
+            onEdit={() => { setSelectedText(text); setEditContent(text.content); setDialogs((d) => ({ ...d, edit: true })); }}
+            onDelete={() => { setSelectedText(text); setDialogs((d) => ({ ...d, delete: true })); }}
             countWords={() => text.content.trim().split(/\s+/).length}
           />
         ))
@@ -227,174 +183,45 @@ const Profile = () => {
 
       {/* Paginación */}
       <Box display="flex" justifyContent="center" gap={2} mt={4}>
-        <Button
-          onClick={() => handlePageChange(page - 1)}
-          disabled={page === 1}
-        >
-          Anterior
-        </Button>
+        <Button onClick={() => handlePageChange(page - 1)} disabled={page === 1}>Anterior</Button>
         <Typography>Página {page}</Typography>
-        <Button
-          onClick={() => handlePageChange(page + 1)}
-          disabled={texts.length < 10}
-        >
-          Siguiente
-        </Button>
+        <Button onClick={() => handlePageChange(page + 1)} disabled={texts.length < 10}>Siguiente</Button>
       </Box>
 
-      {/* Diálogo Ver Texto */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: "background.paper",
-            color: "text.primary",
-            borderRadius: 2,
-          },
-        }}
-      >
-        <DialogTitle>
-          {ideasMap[selectedText?.ideaId || 0]?.title || "Sin título"}
-        </DialogTitle>
+      {/* Diálogos (ver, editar, eliminar) */}
+      <Dialog open={dialogs.view} onClose={() => setDialogs((d) => ({ ...d, view: false }))} maxWidth="md" fullWidth>
+        <DialogTitle>{ideasMap[selectedText?.ideaId || 0]?.title || "Sin título"}</DialogTitle>
         <DialogContent>
-          <Typography
-            variant="body1"
-            sx={{
-              whiteSpace: "pre-wrap",
-              lineHeight: 1.8,
-              color: "text.secondary",
-            }}
-          >
-            {selectedText?.content}
-          </Typography>
-
+          <Typography variant="body1" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}>{selectedText?.content}</Typography>
           <Box display="flex" gap={1} mt={3}>
-            <Chip
-              icon={<AccessTimeIcon />}
-              label={`${Math.floor(selectedText?.time! / 60)}:${(
-                selectedText?.time! % 60
-              )
-                .toString()
-                .padStart(2, "0")}`}
-              size="small"
-              variant="outlined"
-              sx={{ borderRadius: 1 }}
-            />
-            <Chip
-              icon={<TextFieldsIcon />}
-              label={`${
-                selectedText?.content.trim().split(/\s+/).length
-              } palabras`}
-              size="small"
-              variant="outlined"
-              sx={{ borderRadius: 1 }}
-            />
+            <Chip icon={<AccessTimeIcon />} label={`${Math.floor((selectedText?.time || 0) / 60)}:${((selectedText?.time || 0) % 60).toString().padStart(2, "0")}`} size="small" variant="outlined" />
+            <Chip icon={<TextFieldsIcon />} label={`${selectedText?.content.trim().split(/\s+/).length || 0} palabras`} size="small" variant="outlined" />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button
-            variant="outlined"
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              color: theme.palette.primary.contrastText,
-              "&:hover": {
-                bgcolor: theme.palette.secondary.main,
-                color: "theme.palette.primary.contrastText",
-              },
-            }}
-            onClick={() => setOpenDialog(false)}
-          >
-            Cerrar
-          </Button>
+          <Button onClick={() => setDialogs((d) => ({ ...d, view: false }))}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Diálogo Editar Texto */}
-      <Dialog
-        open={openEditDialog}
-        onClose={() => setOpenEditDialog(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: "background.paper",
-            color: "text.primary",
-            borderRadius: 2,
-          },
-        }}
-      >
+      <Dialog open={dialogs.edit} onClose={() => setDialogs((d) => ({ ...d, edit: false }))} maxWidth="md" fullWidth>
         <DialogTitle>Editar texto</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={10}
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            sx={{
-              mt: 1,
-              textarea: { color: "text.primary" },
-              label: { color: "text.secondary" },
-            }}
-          />
+          <TextField fullWidth multiline rows={10} value={editContent} onChange={(e) => setEditContent(e.target.value)} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)} variant="outlined">
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleUpdateText}
-            disabled={isUpdating}
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              color: theme.palette.primary.contrastText,
-              "&:hover": {
-                bgcolor: theme.palette.secondary.main,
-                color: "theme.palette.primary.contrastText",
-              },
-            }}
-          >
-            {isUpdating ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              "Guardar"
-            )}
-          </Button>
+          <Button onClick={() => setDialogs((d) => ({ ...d, edit: false }))}>Cancelar</Button>
+          <Button onClick={handleUpdateText} disabled={isUpdating}>{isUpdating ? <CircularProgress size={24} /> : "Guardar"}</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Diálogo Confirmar Eliminación */}
-      <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-        PaperProps={{
-          sx: {
-            bgcolor: "background.paper",
-            color: "text.primary",
-            borderRadius: 2,
-          },
-        }}
-      >
+      <Dialog open={dialogs.delete} onClose={() => setDialogs((d) => ({ ...d, delete: false }))}>
         <DialogTitle>¿Eliminar texto?</DialogTitle>
         <DialogContent>
           <Typography>¿Estás seguro que deseas eliminar este texto?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancelar</Button>
-          <Button
-            onClick={handleDeleteText}
-            color="error"
-            disabled={isDeleting}
-          >
-            {isDeleting ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              "Eliminar"
-            )}
-          </Button>
+          <Button onClick={() => setDialogs((d) => ({ ...d, delete: false }))}>Cancelar</Button>
+          <Button onClick={handleDeleteText} color="error" disabled={isDeleting}>{isDeleting ? <CircularProgress size={24} /> : "Eliminar"}</Button>
         </DialogActions>
       </Dialog>
     </Container>
