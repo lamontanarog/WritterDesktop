@@ -26,6 +26,7 @@ import LogoutButton from "../../components/LogoutButton";
 import IdeaFormDialog from "./IdeaFormDialog";
 import { Idea } from "../../types/idea";
 import { toast } from "sonner";
+import IdeaAIGenerator from "./IdeaAiGenerator";
 
 const Dashboard = () => {
   const [page, setPage] = useState(1);
@@ -79,8 +80,7 @@ const Dashboard = () => {
       toast.success("Idea eliminada correctamente");
       refetch();
     } catch (error) {
-      toast.error("Error al eliminar idea");
-      console.error("Delete error:", error);
+      toast.error("Error al eliminar idea.");
     }
   };
 
@@ -111,7 +111,7 @@ const Dashboard = () => {
           onChange={(e) => setSearch(e.target.value)}
           sx={{ mb: 4 }}
         />
-
+        <IdeaAIGenerator/>
         {/* Lista de Ideas */}
         {isLoading ? (
           <CircularProgress />

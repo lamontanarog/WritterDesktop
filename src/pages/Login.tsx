@@ -47,16 +47,10 @@ const Login = () => {
 
     try {
       const res = await login({ email, password }).unwrap();
-      console.log({res});
       if (!res.token) throw new Error("Token inválido");
-
-      console.log(res.token);
-      
       localStorage.setItem("token", res.token);
       await new Promise((resolve) => setTimeout(resolve, 50));
-
       const userRes = await triggerGetCurrentUser().unwrap();
-      console.log(userRes);
       if (!userRes) throw new Error("Usuario no encontrado");
 
       dispatch(loginSuccess({ user: userRes, token: res.token }));

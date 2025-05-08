@@ -125,7 +125,6 @@ const Home = () => {
       <Grid container spacing={3}>
         {ideasData?.data?.map(
           (idea) => (
-            console.log(idea.title),
             (
               <Grid item xs={12} sm={6} md={4} key={idea.id}>
                 <IdeaCard

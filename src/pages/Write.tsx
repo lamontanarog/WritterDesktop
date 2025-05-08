@@ -90,8 +90,6 @@ const Write = () => {
         time: timer,
         wordCount
       }).unwrap()
-
-      console.log('Write - Texto guardado exitosamente')
       toast.success('Texto guardado exitosamente')
       navigate("/home", { replace: true })
     } catch (error) {

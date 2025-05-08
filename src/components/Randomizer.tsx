@@ -23,6 +23,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGetRandomIdeaQuery } from "../features/api/apiSlice";
 import { Idea } from "../types/idea";
+import { toast } from "sonner";
 
 const Randomizer = ({
   
@@ -57,7 +58,7 @@ const Randomizer = ({
     if (randomIdea) {
       navigate("/write", { state: { ideaId: randomIdea?.id } });
     } else {
-      console.log("Randomizer - No hay idea para seleccionar");
+      toast.error('Error al seleccionar idea');
     }
   };
 
