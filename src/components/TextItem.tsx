@@ -45,6 +45,7 @@ import {
           alignItems="flex-start"
           sx={{
             transition: "all 0.2s ease",
+            boxShadow: theme.shadows[1],
             "&:hover": {
               bgcolor: `${theme.palette.primary.light}10`,
               transform: "translateX(8px)",

@@ -27,9 +27,9 @@ const Footer = () => {
           </Stack>
 
           <Stack direction="row" spacing={3}>
-            <Link href="/" underline="hover" color="primary">Inicio</Link>
-            <Link href="/register" underline="hover" color="primary">Registrarse</Link>
-            <Link href="/login" underline="hover" color="primary">Iniciar sesión</Link>
+            <Link href="/" underline="hover" color="text.secondary" >Inicio</Link>
+            <Link href="/register" underline="hover" color="text.secondary">Registrarse</Link>
+            <Link href="/login" underline="hover" color="text.secondary">Iniciar sesión</Link>
           </Stack>
         </Stack>
 

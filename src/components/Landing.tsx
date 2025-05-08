@@ -33,7 +33,7 @@ const Landing = () => {
           transition={{ duration: 0.8 }}
         >
           <Typography variant="h2" sx={{ fontWeight: "bold", mb: 2 }}>
-            Bienvenido a WriterDesktop
+          Writer's desktop
           </Typography>
           <Typography variant="h6" color="text.secondary">
             Una app para liberar tu creatividad, incluso si nunca escribiste

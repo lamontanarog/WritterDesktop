@@ -1,4 +1,4 @@
-import { Button } from '@mui/material';
+import { Button, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../features/user/userSlice';
@@ -6,6 +6,7 @@ import { logout } from '../features/user/userSlice';
 const LogoutButton = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const theme = useTheme();
 
     const handleLogout = () => {
         dispatch(logout());
@@ -17,7 +18,7 @@ const LogoutButton = () => {
             variant="contained"
             color="error"
             onClick={handleLogout}
-            // sx={{ marginLeft: 'auto' }}
+            sx={{color: theme.palette.primary.contrastText }}
         >
             Cerrar Sesión
         </Button>

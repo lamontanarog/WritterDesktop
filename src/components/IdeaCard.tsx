@@ -4,7 +4,7 @@ import {
     Card, CardContent, CardHeader, Typography, IconButton,
     CardActions, Divider, Button, useTheme, Tooltip, Zoom
   } from '@mui/material';
-  import { Edit as EditIcon, FormatQuote as FormatQuoteIcon } from '@mui/icons-material';
+  import { Edit as EditIcon, FormatQuote as FormatQuoteIcon, Lightbulb as LightbulbIcon } from '@mui/icons-material';
   import { Idea } from '../types/idea';
   
   interface Props {
@@ -35,7 +35,7 @@ import {
         >
           <CardHeader
             title={<Typography sx={{ fontWeight: 'bold' }}>{idea.title}</Typography>}
-            subheader={<Typography variant="body2" color="text.secondary">{idea.content.substring(0, 80)}...</Typography>}
+            subheader={<Typography variant="body2" color="gray">{<LightbulbIcon sx={{fontSize: '0.9rem', mx: 0.5 }} />}¡Te puede interesar!</Typography>}
             sx={{
               bgcolor: `${theme.palette.primary.light}15`,
               borderBottom: `1px solid ${theme.palette.divider}`,

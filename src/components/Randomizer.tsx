@@ -67,8 +67,9 @@ const Randomizer = ({
       sx={{
         p: 3,
         width: "100%",
-        maxWidth: 500,
+        maxWidth: { xs: 600,lg : 'auto', xl: 800 },
         borderRadius: 2,
+        boxShadow: theme.shadows[5],
         background: theme.palette.background.paper,
         mb: 4,
       }}
@@ -93,14 +94,15 @@ const Randomizer = ({
           }}
         >
           <LightbulbIcon sx={{ mr: 1 }} />
-          Inspiration Generator
+          Generador de inspiración
         </Typography>
 
         <Typography variant="body1" color="text.secondary" paragraph>
-          Need inspiration? Generate a random writing prompt to get your
-          creativity flowing.
+        ¿Necesita inspiración?
         </Typography>
-
+        <Typography variant="subtitle2" color="gray" paragraph>
+        ¡Utiliza nuestro generador de ideas para comenzar!
+        </Typography>
         <Button
           onClick={handleGenerateIdea}
           variant="contained"
@@ -119,7 +121,7 @@ const Randomizer = ({
             "&:hover": { boxShadow: 4 },
           }}
         >
-          {isFetching ? "Generating..." : "Generate Random Idea"}
+          {isFetching ? "Generando..." : "Generar una idea aleatoria"}
         </Button>
 
         {isFetching ? (
@@ -144,7 +146,8 @@ const Randomizer = ({
                   }}
                 >
                   <Chip
-                    label="Random Idea"
+                    icon={<LightbulbIcon />}
+                    label="Posible idea"
                     color="secondary"
                     size="small"
                     sx={{
@@ -179,7 +182,7 @@ const Randomizer = ({
                   </CardContent>
 
                   <CardActions sx={{ justifyContent: "flex-end", p: 2, pt: 0 }}>
-                    <Tooltip title="Start writing with this idea">
+                    <Tooltip title="Empezar a escribir con esta idea">
                       <Button
                         variant="outlined"
                         color="primary"
@@ -193,7 +196,7 @@ const Randomizer = ({
                           "&:hover": { bgcolor: theme.palette.secondary.main, color: theme.palette.secondary.contrastText },
                         }}
                       >
-                        Select to write
+                        Elegir para escribir
                       </Button>
                     </Tooltip>
                   </CardActions>

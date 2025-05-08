@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  useTheme,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -37,6 +38,7 @@ import { Idea } from "../types/idea";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [selectedText, setSelectedText] = useState<Text | null>(null);
   const [editContent, setEditContent] = useState("");
   const [page, setPage] = useState(1);
@@ -74,8 +76,8 @@ const Profile = () => {
   const ideasMap = useMemo(() => {
     return (
       ideasResponse?.data.reduce((acc, idea) => {
-        if (typeof idea.id === 'number'){
-        acc[idea.id] = idea;
+        if (typeof idea.id === "number") {
+          acc[idea.id] = idea;
         }
         return acc;
       }, {} as Record<number, Idea>) || {}
@@ -129,7 +131,7 @@ const Profile = () => {
         alignItems="center"
         minHeight="100vh"
       >
-        <CircularProgress />
+        <CircularProgress color="secondary" />
       </Box>
     );
   if (isUserError || !user)
@@ -141,7 +143,7 @@ const Profile = () => {
         onClick={() => navigate("/home", { replace: true })}
         variant="contained"
         startIcon={<ArrowBack />}
-        sx={{ mb: 4 }}
+        sx={{ mb: 4, color: theme.palette.primary.contrastText }}
       >
         Volver al inicio
       </Button>
@@ -183,16 +185,9 @@ const Profile = () => {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {user.email}
             </Typography>
-            <Chip
-              label={user.role}
-              color="primary"
-              variant="outlined"
-              sx={{ fontSize: "0.75rem", height: "24px" }}
-            />
+            
           </Box>
         </Box>
-
-        {/* Logout button a la derecha */}
         <Box alignSelf={{ xs: "center", sm: "flex-start" }}>
           <LogoutButton />
         </Box>
@@ -300,7 +295,20 @@ const Profile = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cerrar</Button>
+          <Button
+            variant="outlined"
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              "&:hover": {
+                bgcolor: theme.palette.secondary.main,
+                color: "theme.palette.primary.contrastText",
+              },
+            }}
+            onClick={() => setOpenDialog(false)}
+          >
+            Cerrar
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -334,9 +342,26 @@ const Profile = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>Cancelar</Button>
-          <Button onClick={handleUpdateText} disabled={isUpdating}>
-            {isUpdating ? <CircularProgress size={24} /> : "Guardar"}
+          <Button onClick={() => setOpenEditDialog(false)} variant="outlined">
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleUpdateText}
+            disabled={isUpdating}
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              "&:hover": {
+                bgcolor: theme.palette.secondary.main,
+                color: "theme.palette.primary.contrastText",
+              },
+            }}
+          >
+            {isUpdating ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Guardar"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -364,7 +389,11 @@ const Profile = () => {
             color="error"
             disabled={isDeleting}
           >
-            {isDeleting ? <CircularProgress size={24} /> : "Eliminar"}
+            {isDeleting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Eliminar"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
