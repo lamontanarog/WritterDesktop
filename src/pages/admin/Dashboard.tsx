@@ -13,6 +13,7 @@ import {
   IconButton,
   CircularProgress,
   Pagination,
+  useTheme,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 import {
@@ -32,6 +33,7 @@ const Dashboard = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const theme = useTheme();
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
 
   const {
@@ -118,7 +120,7 @@ const Dashboard = () => {
         ) : (
           <Grid container spacing={3}>
             {ideasData?.data?.map((idea) => (
-              <Grid item xs={12} sm={6} md={4} key={idea.id}>
+              <Grid item xs={12} sm={6} md={4} key={idea.id} sx={{ my: "2rem" }}>
                 <Card
                   sx={{
                     bgcolor: "background.paper",
@@ -126,6 +128,9 @@ const Dashboard = () => {
                     boxShadow: 3,
                     borderRadius: 2,
                     transition: "background-color 0.3s ease",
+                    height: "15rem",
+                    scrollbarWidth:'thin',
+                    overflow: "auto",
                   }}
                 >
                   <CardContent>
