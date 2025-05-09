@@ -13,7 +13,6 @@ import {
   IconButton,
   CircularProgress,
   Pagination,
-  useTheme,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 import {
@@ -33,7 +32,6 @@ const Dashboard = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const theme = useTheme();
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
 
   const {
